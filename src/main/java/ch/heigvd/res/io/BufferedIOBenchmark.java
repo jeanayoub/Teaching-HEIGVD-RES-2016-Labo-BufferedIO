@@ -44,7 +44,7 @@ public class BufferedIOBenchmark {
 	 * FileOutputStream. Depending on the strategy, it wraps a BufferedOutputStream around it, or not. The method
 	 * then delegates the actual production of bytes to another method, passing it the stream.
 	 */
-	private void produceTestData(IOStrategy ioStrategy, long numberOfBytesToWrite, int blockSize) {
+	private long produceTestData(IOStrategy ioStrategy, long numberOfBytesToWrite, int blockSize) {
 		LOG.log(Level.INFO, "Generating test data ({0}, {1} bytes, block size: {2}...", new Object[]{ioStrategy, numberOfBytesToWrite, blockSize});
 		Timer.start();
 
@@ -74,7 +74,12 @@ public class BufferedIOBenchmark {
 				LOG.log(Level.SEVERE, ex.getMessage(), ex);
 			}
 		}
-		LOG.log(Level.INFO, "  > Done in {0} ms.", Timer.takeTime());
+                
+                long duration = 0;
+		LOG.log(Level.INFO, "  > Done in {0} ms.", (duration = Timer.takeTime()));
+                
+                return duration;
+                
 	}
 	
 	/**
@@ -119,7 +124,7 @@ public class BufferedIOBenchmark {
 	 * FileInputStream. Depending on the strategy, it wraps a BufferedInputStream around it, or not. The method
 	 * then delegates the actual consumption of bytes to another method, passing it the stream.
 	 */
-	private void consumeTestData(IOStrategy ioStrategy, int blockSize) {
+	private long consumeTestData(IOStrategy ioStrategy, int blockSize) {
 		LOG.log(Level.INFO, "Consuming test data ({0}, block size: {1}...", new Object[]{ioStrategy, blockSize});
 		Timer.start();
 
@@ -149,8 +154,11 @@ public class BufferedIOBenchmark {
 				LOG.log(Level.SEVERE, ex.getMessage(), ex);
 			}
 		}
-		LOG.log(Level.INFO, "  > Done in {0} ms.", Timer.takeTime());
-
+                
+                long duration = 0;
+		LOG.log(Level.INFO, "  > Done in {0} ms.", (duration = Timer.takeTime()));
+                
+                return duration;
 	}
 
 	/**
@@ -192,31 +200,91 @@ public class BufferedIOBenchmark {
 
 		LOG.log(Level.INFO, "");
 		LOG.log(Level.INFO, "*** BENCHMARKING WRITE OPERATIONS (with BufferedStream)", Timer.takeTime());
-		bm.produceTestData(IOStrategy.BlockByBlockWithBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 500);
-		bm.produceTestData(IOStrategy.BlockByBlockWithBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 50);
-		bm.produceTestData(IOStrategy.BlockByBlockWithBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 5);
-		bm.produceTestData(IOStrategy.ByteByByteWithBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 0);
-
+                
+                // Defines the first line (title)
+                final String FIRST_LINE = "operation;strategy;blockSize;fileSizeInBytes;durationInMs";
+                // Creates a csv serializer
+                ISerializer serializer = new CsvSerializer();
+                // creates a file named "Test_DATA_Recorder" using csv serialization 
+                IRecorder   recorder   = new FileRecorder("Test_DATA_Recorder", serializer, FIRST_LINE);
+                
+                long duration = 0;
+                IData data;
+		
+                duration = bm.produceTestData(IOStrategy.BlockByBlockWithBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 500);
+                data = new MyExperimentData("WRITE" ,"BlockByBlockWithBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 500, duration);
+                recorder.record(data);
+                
+		duration = bm.produceTestData(IOStrategy.BlockByBlockWithBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 50);
+                data = new MyExperimentData("WRITE" ,"BlockByBlockWithBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 50, duration);
+                recorder.record(data);
+                
+		duration = bm.produceTestData(IOStrategy.BlockByBlockWithBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 5);
+                data = new MyExperimentData("WRITE" ,"BlockByBlockWithBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 5, duration);
+                recorder.record(data);
+                
+		duration = bm.produceTestData(IOStrategy.ByteByByteWithBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 0);
+                data = new MyExperimentData("WRITE" ,"ByteByByteWithBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 0, duration);
+                recorder.record(data);
+                
 		LOG.log(Level.INFO, "");
 		LOG.log(Level.INFO, "*** BENCHMARKING WRITE OPERATIONS (without BufferedStream)", Timer.takeTime());
-		bm.produceTestData(IOStrategy.BlockByBlockWithoutBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 500);
-		bm.produceTestData(IOStrategy.BlockByBlockWithoutBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 50);
-		bm.produceTestData(IOStrategy.BlockByBlockWithoutBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 5);
-		bm.produceTestData(IOStrategy.ByteByByteWithoutBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 0);
+		duration = bm.produceTestData(IOStrategy.BlockByBlockWithoutBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 500);
+                data = new MyExperimentData("WRITE" ,"BlockByBlockWithoutBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 500, duration);
+                recorder.record(data);
+                
+		duration = bm.produceTestData(IOStrategy.BlockByBlockWithoutBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 50);
+                data = new MyExperimentData("WRITE" ,"BlockByBlockWithoutBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 50, duration);
+                recorder.record(data);
+                
+		duration = bm.produceTestData(IOStrategy.BlockByBlockWithoutBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 5);
+                data = new MyExperimentData("WRITE" ,"BlockByBlockWithoutBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 5, duration);
+                recorder.record(data);
+                
+		duration = bm.produceTestData(IOStrategy.ByteByByteWithoutBufferedStream, NUMBER_OF_BYTES_TO_WRITE, 0);
+                data = new MyExperimentData("WRITE" ,"ByteByByteWithoutBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 0, duration);
+                recorder.record(data);
 
+                
 		LOG.log(Level.INFO, "");
 		LOG.log(Level.INFO, "*** BENCHMARKING READ OPERATIONS (with BufferedStream)", Timer.takeTime());
-		bm.consumeTestData(IOStrategy.BlockByBlockWithBufferedStream, 500);
-		bm.consumeTestData(IOStrategy.BlockByBlockWithBufferedStream, 50);
-		bm.consumeTestData(IOStrategy.BlockByBlockWithBufferedStream, 5);
-		bm.consumeTestData(IOStrategy.ByteByByteWithBufferedStream, 0);
+		
+                duration = bm.consumeTestData(IOStrategy.BlockByBlockWithBufferedStream, 500);
+                data = new MyExperimentData("READ" ,"BlockByBlockWithBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 500, duration);
+                recorder.record(data);
+                
+		duration = bm.consumeTestData(IOStrategy.BlockByBlockWithBufferedStream, 50);
+                data = new MyExperimentData("READ" ,"BlockByBlockWithBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 50, duration);
+                recorder.record(data);
+                
+		duration = bm.consumeTestData(IOStrategy.BlockByBlockWithBufferedStream, 5);
+                data = new MyExperimentData("READ" ,"BlockByBlockWithBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 5, duration);
+                recorder.record(data);
+                
+		duration = bm.consumeTestData(IOStrategy.ByteByByteWithBufferedStream, 0);
+                data = new MyExperimentData("READ" ,"ByteByByteWithBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 0, duration);
+                recorder.record(data);
 		
 		LOG.log(Level.INFO, "");
 		LOG.log(Level.INFO, "*** BENCHMARKING READ OPERATIONS (without BufferedStream)", Timer.takeTime());
-		bm.consumeTestData(IOStrategy.BlockByBlockWithoutBufferedStream, 500);
-		bm.consumeTestData(IOStrategy.BlockByBlockWithoutBufferedStream, 50);
-		bm.consumeTestData(IOStrategy.BlockByBlockWithoutBufferedStream, 5);
-		bm.consumeTestData(IOStrategy.ByteByByteWithoutBufferedStream, 0);
+		duration = bm.consumeTestData(IOStrategy.BlockByBlockWithoutBufferedStream, 500);
+                data = new MyExperimentData("READ" ,"BlockByBlockWithoutBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 500, duration);
+                recorder.record(data);
+                
+		duration = bm.consumeTestData(IOStrategy.BlockByBlockWithoutBufferedStream, 50);
+                data = new MyExperimentData("READ" ,"BlockByBlockWithoutBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 50, duration);
+                recorder.record(data);
+                
+		duration = bm.consumeTestData(IOStrategy.BlockByBlockWithoutBufferedStream, 5);
+                data = new MyExperimentData("READ" ,"BlockByBlockWithoutBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 5, duration);
+                recorder.record(data);
+                
+		duration = bm.consumeTestData(IOStrategy.ByteByByteWithoutBufferedStream, 0);
+                data = new MyExperimentData("READ" ,"ByteByByteWithoutBufferedStream", NUMBER_OF_BYTES_TO_WRITE, 0, duration);
+                recorder.record(data);
+                
+                // Closes the file stream
+                recorder.closeStream();
 	}
 
 }
